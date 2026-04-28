@@ -1,40 +1,32 @@
 import os
-import base64
-from groq import Groq
+import google.generativeai as genai
 
-# Pastikan API Key Groq lu udah ada di Railway Variables
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-client = Groq(api_key=GROQ_API_KEY)
+# Pastikan di Railway lu udah ada variabel: GEMINI_KEY
+GEMINI_KEY = os.getenv("GEMINI_KEY")
+genai.configure(api_key=GEMINI_KEY)
 
 def analisa_chart_vision(image_path):
     try:
-        # Ubah gambar jadi base64
-        with open(image_path, "rb") as image_file:
-            encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
-
-        # Panggil Llama 3.2 Vision (Model terbaru & tercepat di Groq)
-        completion = client.chat.completions.create(
-            model="llama-3.2-11b-vision-preview",
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "text", 
-                            "text": "Lu adalah Master Trader SMC/ICT dari Nganjuk. Analisa chart XAUUSD ini. Cari Order Block, FVG, atau Liquidity. Kasih saran entry, SL, dan TP. Jawab santai pake bahasa gue-lu dan cok!"
-                        },
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/jpeg;base64,{encoded_image}"
-                            }
-                        }
-                    ]
-                }
-            ],
-            temperature=0.7,
-            max_tokens=1024
+        # Pake model flash, ini stabil dan jago baca chart trading
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        # Baca file gambarnya
+        with open(image_path, "rb") as f:
+            image_data = f.read()
+            
+        # Prompt sakti buat scalping
+        prompt = (
+            "Lu adalah Suhu Trading SMC/ICT dari Nganjuk. Analisa screenshot chart XAUUSD ini. "
+            "Cari area Order Block, FVG, atau Liquidity yang mantap. "
+            "Saranin Entry, SL, dan TP buat scalping. Jawab santai pake bahasa gue-lu dan cok!"
         )
-        return completion.choices[0].message.content
+        
+        # Eksekusi kirim ke Google
+        response = model.generate_content([
+            prompt,
+            {"mime_type": "image/jpeg", "data": image_data}
+        ])
+        
+        return response.text
     except Exception as e:
         return f"Duh, mata gue makin siwer, Cok! Gagal baca gambar. Error: {e}"
