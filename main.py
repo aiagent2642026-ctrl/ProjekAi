@@ -10,7 +10,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import os
 TOKEN_TELE = os.getenv("TOKEN_TELE")
 # Lu juga bisa tambahin ini kalau butuh CHAT_ID
-# CHAT_ID = os.getenv("CHAT_ID") 
+CHAT_ID = os.getenv("CHAT_ID") 
 from brain import tanya_groq
 from tools import dapet_waktu_sekarang
 
