@@ -8,7 +8,7 @@ genai.configure(api_key=GEMINI_KEY)
 def analisa_chart_vision(image_path):
     try:
         # Pake model flash, ini stabil dan jago baca chart trading
-        model = genai.GenerativeModel('gemini-pro-vision')
+        model = genai.GenerativeModel('gemini-1.5-flash')
         # Baca file gambarnya
         with open(image_path, "rb") as f:
             image_data = f.read()
