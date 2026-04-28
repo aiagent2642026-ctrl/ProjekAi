@@ -2,12 +2,54 @@ import requests
 import time
 import sys
 import os
+import psycopg2
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+
+# Ambil URL Database dari Railway Variables
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+# Fungsi buat inisialisasi database (Bikin tabel kalau belum ada)
+def init_db():
+    conn = psycopg2.connect(DATABASE_URL)
+    cur = conn.cursor()
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS brain_data (
+            id SERIAL PRIMARY KEY,
+            materi TEXT NOT NULL,
+            kategori TEXT
+        )
+    ''')
+    conn.commit()
+    cur.close()
+    conn.close()
+
+# Jalanin inisialisasi pas bot nyala
+init_db()
+
+# Fitur simpan ilmu baru
+async def belajar(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    materi_baru = " ".join(context.args)
+    if not materi_baru:
+        await update.message.reply_text("Kasih materinya dong Cok! Contoh: /belajar SMC itu entry di Order Block.")
+        return
+
+    conn = psycopg2.connect(DATABASE_URL)
+    cur = conn.cursor()
+    cur.execute("INSERT INTO brain_data (materi, kategori) VALUES (%s, %s)", (materi_baru, "umum"))
+    conn.commit()
+    cur.close()
+    conn.close()
+    
+    await update.message.reply_text("Siap Bos! Ilmu baru udah gue kunci di otak gajah. Makin pinter nih gue! 🧠✨")
+
+# (Tambahin fungsi belajar ini ke dalam ApplicationBuilder lu nanti)
 
 # Biar Python tau folder kita ada di mana
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # Panggil semua mesin dari file lain
-import os
+
 TOKEN_TELE = os.getenv("TOKEN_TELE")
 # Lu juga bisa tambahin ini kalau butuh CHAT_ID
 CHAT_ID = os.getenv("CHAT_ID") 
@@ -58,4 +100,5 @@ def jalankan_bot():
 
 if __name__ == "__main__":
     jalankan_bot()
-
+app.add_handler(CommandHandler("belajar", belajar))
+                  
