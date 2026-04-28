@@ -4,6 +4,7 @@ import logging
 import sys
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+from vision import analisa_chart_vision # Panggil file baru tadi
 
 # Biar folder project kebaca
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -108,7 +109,26 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         print(f"⚠️ Error di brain: {e}")
         await update.message.reply_text("Aduh, otak gue lagi nge-hang dikit, Cok!")
-
+async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    msg = await update.message.reply_text("📸 *Sik Cok, gue teropong dulu chart lu...* 🔭", parse_mode="Markdown")
+    
+    try:
+        # Download foto
+        photo_file = await update.message.photo[-1].get_file()
+        file_path = "temp_chart.jpg"
+        await photo_file.download_to_drive(file_path)
+        
+        # Analisa pake mata Gemini
+        hasil_analisa = analisa_chart_vision(file_path)
+        
+        # Hapus file sampah
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            
+        await msg.edit_text(hasil_analisa)
+    except Exception as e:
+        await msg.edit_text(f"Gagal baca gambar, Cok! Error: {e}")
+            
 # --- MESIN UTAMA ---
 if __name__ == '__main__':
     # Pastikan database siap dulu
