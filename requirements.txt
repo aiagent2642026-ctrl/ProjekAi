@@ -1,5 +1,6 @@
 requests
 python-telegram-bot
+google-generativeai>=0.8.3
 groq
 psycopg2-binary
-google-generativeai>=0.8.3
+
