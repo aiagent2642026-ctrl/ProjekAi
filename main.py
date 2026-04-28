@@ -62,6 +62,38 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg_user = update.message.text
     print(f"📩 Chat Masuk: {msg_user}")
     
+    try:
+        # 1. Cek dulu ke database, ada gak materi yang mirip
+        conn = get_db_connection()
+        cur = conn.cursor()
+        # Kita cari materi yang mengandung kata dari chat lu
+        search_query = f"%{msg_user[:10]}%" 
+        cur.execute("SELECT materi FROM brain_data WHERE materi ILIKE %s LIMIT 1", (search_query,))
+        data_catatan = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        # 2. Panggil AI Groq buat jawaban utama
+        jawab_ai = tanya_groq(msg_user)
+
+        # 3. Gabungin kalau ada catatan di database
+        if data_catatan:
+            catatan = data_catatan[0]
+            respon_final = f"{jawab_ai}\n\n💡 *Catatan Internal Gue:* {catatan}"
+        else:
+            respon_final = jawab_ai
+
+        await update.message.reply_text(respon_final, parse_mode="Markdown")
+
+    except Exception as e:
+        print(f"⚠️ Error di brain/db: {e}")
+        # Kalau database error, tetep usahain jawab pake Groq aja
+        try:
+            jawab_ai = tanya_groq(msg_user)
+            await update.message.reply_text(jawab_ai, parse_mode="Markdown")
+        except:
+            await update.message.reply_text("Aduh, otak gue lagi nge-hang parah, Cok!")
+    
     # Ambil konteks dari database dikit (Optional: Biar dia inget materi terakhir)
     # Untuk sekarang kita fokus biar dia gak crash dulu
     try:
