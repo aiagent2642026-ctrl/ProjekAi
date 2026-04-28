@@ -140,6 +140,8 @@ if __name__ == '__main__':
     app = ApplicationBuilder().token(TOKEN_TELE).build()
 
     # Daftarin perintah
+    app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
+    
     app.add_handler(CommandHandler("start", lambda u, c: u.message.reply_text("Halo Cok! Agent Nganjuk siap bantu trading & coding lu!")))
     app.add_handler(CommandHandler("belajar", belajar))
     
