@@ -1,6 +1,9 @@
 # brain.py - Otaknya Si Agent
 import requests
-from config import GROQ_API_KEY, MODEL_NAME
+import os
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+MODEL_NAME = os.getenv("MODEL_NAME")
+
 
 def tanya_groq(pesan_user):
     url = "https://api.groq.com/openai/v1/chat/completions"
