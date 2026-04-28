@@ -59,40 +59,46 @@ async def belajar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # --- HANDLING CHAT BIASA (Mikir pake Groq) ---
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    msg_user = update.message.text
+    msg_user = update.message.text.lower() # Kita bikin kecil semua hurufnya biar gak baperan
     print(f"📩 Chat Masuk: {msg_user}")
     
     try:
-        # 1. Cari di database pake cara yang lebih pinter (pake tiap kata kunci)
-        # Kita pecah chat lu, ambil kata yang penting aja buat dicari
-        words = msg_user.split()
-        keyword = words[-1] if len(words) > 0 else msg_user # Ambil kata terakhir biasanya intinya
-
+        # 1. AMBIL ILMU DARI DATABASE
         conn = get_db_connection()
         cur = conn.cursor()
-        # Cari materi yang mengandung kata kunci apa aja dari chat lu
-        cur.execute("SELECT materi FROM brain_data WHERE materi ILIKE %s ORDER BY id DESC LIMIT 1", (f"%{keyword}%",))
-        data_catatan = cur.fetchone()
+        
+        # Kita pecah chat lu jadi kata-kata, trus cari yang paling relevan
+        kata_kunci = msg_user.split()
+        hasil_catatan = []
+        
+        for kata in kata_kunci:
+            if len(kata) > 3: # Cari kata yang panjangnya lebih dari 3 huruf biar gak spam
+                cur.execute("SELECT materi FROM brain_data WHERE materi ILIKE %s LIMIT 1", (f"%{kata}%",))
+                row = cur.fetchone()
+                if row:
+                    hasil_catatan.append(row[0])
+        
         cur.close()
         conn.close()
 
-        # 2. Panggil AI Groq
+        # 2. PANGGIL OTAK AI (GROQ)
         jawab_ai = tanya_groq(msg_user)
 
-        # 3. Kalo ada di database, PAKSA dia buat nampilin di awal biar gak sok asik
-        if data_catatan:
-            catatan = data_catatan[0]
-            respon_final = f"📌 *INGATAN GUE:* {catatan}\n\n---\n🤖 *Analisa AI:* {jawab_ai}"
+        # 3. GABUNGIN JAWABAN (PAKSA DIA JAWAB PAKE INGATAN DULU)
+        if hasil_catatan:
+            # Ambil catatan pertama yang ketemu
+            catatan_final = hasil_catatan[0]
+            respon_final = f"📌 *INGATAN GUE:* {catatan_final}\n\n---\n🤖 *Analisa AI:* {jawab_ai}"
         else:
             respon_final = jawab_ai
 
         await update.message.reply_text(respon_final, parse_mode="Markdown")
 
     except Exception as e:
-        print(f"⚠️ Error: {e}")
+        print(f"⚠️ Error Database: {e}")
         jawab_ai = tanya_groq(msg_user)
         await update.message.reply_text(jawab_ai)
-    
+
     # Ambil konteks dari database dikit (Optional: Biar dia inget materi terakhir)
     # Untuk sekarang kita fokus biar dia gak crash dulu
     try:
