@@ -1,104 +1,94 @@
-import requests
-import time
-import sys
 import os
 import psycopg2
+import logging
+import sys
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 
-# Ambil URL Database dari Railway Variables
-DATABASE_URL = os.getenv("DATABASE_URL")
-
-# Fungsi buat inisialisasi database (Bikin tabel kalau belum ada)
-def init_db():
-    conn = psycopg2.connect(DATABASE_URL)
-    cur = conn.cursor()
-    cur.execute('''
-        CREATE TABLE IF NOT EXISTS brain_data (
-            id SERIAL PRIMARY KEY,
-            materi TEXT NOT NULL,
-            kategori TEXT
-        )
-    ''')
-    conn.commit()
-    cur.close()
-    conn.close()
-
-# Jalanin inisialisasi pas bot nyala
-init_db()
-
-# Fitur simpan ilmu baru
-async def belajar(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    materi_baru = " ".join(context.args)
-    if not materi_baru:
-        await update.message.reply_text("Kasih materinya dong Cok! Contoh: /belajar SMC itu entry di Order Block.")
-        return
-
-    conn = psycopg2.connect(DATABASE_URL)
-    cur = conn.cursor()
-    cur.execute("INSERT INTO brain_data (materi, kategori) VALUES (%s, %s)", (materi_baru, "umum"))
-    conn.commit()
-    cur.close()
-    conn.close()
-    
-    await update.message.reply_text("Siap Bos! Ilmu baru udah gue kunci di otak gajah. Makin pinter nih gue! 🧠✨")
-
-# (Tambahin fungsi belajar ini ke dalam ApplicationBuilder lu nanti)
-
-# Biar Python tau folder kita ada di mana
+# Biar folder project kebaca
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-# Panggil semua mesin dari file lain
-
-TOKEN_TELE = os.getenv("TOKEN_TELE")
-# Lu juga bisa tambahin ini kalau butuh CHAT_ID
-CHAT_ID = os.getenv("CHAT_ID") 
+# Load mesin dari file lu yang lain
 from brain import tanya_groq
 from tools import dapet_waktu_sekarang
 
-def kirim_tele(pesan):
-    url = f"https://api.telegram.org/bot{TOKEN_TELE}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": pesan, "parse_mode": "Markdown"}
+# Ambil Variables dari Railway
+TOKEN_TELE = os.getenv("TOKEN_TELE")
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+# --- KONEKSI DATABASE (OTAK GAJAH) ---
+def get_db_connection():
+    # Gunakan koneksi SSL agar aman di Railway
+    return psycopg2.connect(DATABASE_URL, sslmode='require')
+
+def init_db():
     try:
-        requests.post(url, json=payload, timeout=10)
-    except:
-        pass
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute('''
+            CREATE TABLE IF NOT EXISTS brain_data (
+                id SERIAL PRIMARY KEY,
+                materi TEXT NOT NULL,
+                kategori TEXT
+            )
+        ''')
+        conn.commit()
+        cur.close()
+        conn.close()
+        print("✅ Otak Gajah (Database) Siap!")
+    except Exception as e:
+        print(f"❌ Gagal inisialisasi database: {e}")
 
-def jalankan_bot():
+# --- FITUR /belajar ---
+async def belajar(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    materi_baru = " ".join(context.args)
+    if not materi_baru:
+        await update.message.reply_text("Kasih materinya dong Cok! Contoh: /belajar Gold itu sideways kalo gak ada news.")
+        return
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("INSERT INTO brain_data (materi, kategori) VALUES (%s, %s)", (materi_baru, "umum"))
+        conn.commit()
+        cur.close()
+        conn.close()
+        await update.message.reply_text("Siap Bos! Ilmu baru udah gue simpen di database. Makin gacor nih! 🧠🔥")
+    except Exception as e:
+        await update.message.reply_text(f"Duh error pas nyimpen: {e}")
+
+# --- HANDLING CHAT BIASA (Mikir pake Groq) ---
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    msg_user = update.message.text
+    print(f"📩 Chat Masuk: {msg_user}")
+    
+    # Ambil konteks dari database dikit (Optional: Biar dia inget materi terakhir)
+    # Untuk sekarang kita fokus biar dia gak crash dulu
+    try:
+        # Panggil AI Groq
+        jawab = tanya_groq(msg_user)
+        await update.message.reply_text(jawab, parse_mode="Markdown")
+    except Exception as e:
+        print(f"⚠️ Error di brain: {e}")
+        await update.message.reply_text("Aduh, otak gue lagi nge-hang dikit, Cok!")
+
+# --- MESIN UTAMA ---
+if __name__ == '__main__':
+    # Pastikan database siap dulu
+    init_db()
+    
     print(f"🚀 AGENT NGANJUK AKTIF! [{dapet_waktu_sekarang()}]")
-    # Bersihin pesan lama biar gak spam pas start
-    requests.get(f"https://api.telegram.org/bot{TOKEN_TELE}/deleteWebhook?drop_pending_updates=True")
+    
+    # Bangun aplikasi Telegram
+    app = ApplicationBuilder().token(TOKEN_TELE).build()
 
-    offset = -1
-    while True:
-        try:
-            url = f"https://api.telegram.org/bot{TOKEN_TELE}/getUpdates"
-            r = requests.get(url, params={"offset": offset, "timeout": 15}).json()
+    # Daftarin perintah
+    app.add_handler(CommandHandler("start", lambda u, c: u.message.reply_text("Halo Cok! Agent Nganjuk siap bantu trading & coding lu!")))
+    app.add_handler(CommandHandler("belajar", belajar))
+    
+    # Daftarin handler buat chat biasa
+    app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
 
-            if r.get("ok") and r.get("result"):
-                for up in r["result"]:
-                    offset = up["update_id"] + 1
-                    if "message" in up and "text" in up["message"]:
-                        msg_user = up["message"]["text"]
-                        print(f"📩 Chat: {msg_user}")
-
-                        # --- BAGIAN HOOKS (Saraf Otomatis) ---
-                        from hooks.trigger import proses_sebelum_chat
-                        msg_user = proses_sebelum_chat(msg_user)
-
-                        # AI Mikir pake brain.py
-                        jawab = tanya_groq(msg_user)
-
-                        # Kirim balik ke Tele
-                        kirim_tele(f"🤖 *Agent:* {jawab}")
-        except KeyboardInterrupt:
-            print("\n❌ Bot dimatikan Ilham.")
-            break
-        except Exception as e:
-            print(f"⚠️ Ada error dikit: {e}")
-            time.sleep(2)
-
-if __name__ == "__main__":
-    jalankan_bot()
-app.add_handler(CommandHandler("belajar", belajar))
-                  
+    # Gas Pol!
+    app.run_polling(drop_pending_updates=True)
+        
