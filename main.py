@@ -63,36 +63,35 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print(f"📩 Chat Masuk: {msg_user}")
     
     try:
-        # 1. Cek dulu ke database, ada gak materi yang mirip
+        # 1. Cari di database pake cara yang lebih pinter (pake tiap kata kunci)
+        # Kita pecah chat lu, ambil kata yang penting aja buat dicari
+        words = msg_user.split()
+        keyword = words[-1] if len(words) > 0 else msg_user # Ambil kata terakhir biasanya intinya
+
         conn = get_db_connection()
         cur = conn.cursor()
-        # Kita cari materi yang mengandung kata dari chat lu
-        search_query = f"%{msg_user[:10]}%" 
-        cur.execute("SELECT materi FROM brain_data WHERE materi ILIKE %s LIMIT 1", (search_query,))
+        # Cari materi yang mengandung kata kunci apa aja dari chat lu
+        cur.execute("SELECT materi FROM brain_data WHERE materi ILIKE %s ORDER BY id DESC LIMIT 1", (f"%{keyword}%",))
         data_catatan = cur.fetchone()
         cur.close()
         conn.close()
 
-        # 2. Panggil AI Groq buat jawaban utama
+        # 2. Panggil AI Groq
         jawab_ai = tanya_groq(msg_user)
 
-        # 3. Gabungin kalau ada catatan di database
+        # 3. Kalo ada di database, PAKSA dia buat nampilin di awal biar gak sok asik
         if data_catatan:
             catatan = data_catatan[0]
-            respon_final = f"{jawab_ai}\n\n💡 *Catatan Internal Gue:* {catatan}"
+            respon_final = f"📌 *INGATAN GUE:* {catatan}\n\n---\n🤖 *Analisa AI:* {jawab_ai}"
         else:
             respon_final = jawab_ai
 
         await update.message.reply_text(respon_final, parse_mode="Markdown")
 
     except Exception as e:
-        print(f"⚠️ Error di brain/db: {e}")
-        # Kalau database error, tetep usahain jawab pake Groq aja
-        try:
-            jawab_ai = tanya_groq(msg_user)
-            await update.message.reply_text(jawab_ai, parse_mode="Markdown")
-        except:
-            await update.message.reply_text("Aduh, otak gue lagi nge-hang parah, Cok!")
+        print(f"⚠️ Error: {e}")
+        jawab_ai = tanya_groq(msg_user)
+        await update.message.reply_text(jawab_ai)
     
     # Ambil konteks dari database dikit (Optional: Biar dia inget materi terakhir)
     # Untuk sekarang kita fokus biar dia gak crash dulu
