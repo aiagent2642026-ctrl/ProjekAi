@@ -12,7 +12,9 @@ def analisa_chart_vision(image_path):
 
     try:
         completion = client.chat.completions.create(
-            model="llava-v1.5-7b-4096-preview", # Ini model Groq yang punya mata
+            # Ganti baris modelnya jadi yang baru ini:
+model="llama-3.2-11b-vision-preview"
+            # Ini model Groq yang punya mata
             messages=[
                 {
                     "role": "user",
