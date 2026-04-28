@@ -1,28 +1,36 @@
 import os
-import google.generativeai as genai
+import base64
+from groq import Groq
 
-# Ambil API Key Gemini dari Railway
-GEMINI_KEY = os.getenv("GEMINI_KEY")
-genai.configure(api_key=GEMINI_KEY)
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+client = Groq(api_key=GROQ_API_KEY)
 
 def analisa_chart_vision(image_path):
+    # Groq butuh gambar diubah jadi teks (base64)
+    with open(image_path, "rb") as image_file:
+        encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
+
     try:
-        # Pake model Flash biar responnya kilat buat scalping
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        
-        # Upload foto ke AI
-        sample_file = genai.upload_file(path=image_path, display_name="Chart Scalping")
-        
-        # Prompt khusus buat Trading (SMC/ICT Style)
-        prompt = (
-            "Lu adalah Master Trader SMC dan ICT. Analisa chart ini buat scalping XAUUSD. "
-            "Cari area Order Block, Liquidity Sweep, FVG, atau ChoCh. "
-            "Kasih tau gue: 1. Trend sekarang, 2. Area Entry, 3. SL & TP simpel. "
-            "Jawab pake gaya bahasa santai kayak temen nongkrong di Nganjuk, pake 'Gue/Lu' dan 'Cok'."
+        completion = client.chat.completions.create(
+            model="llava-v1.5-7b-4096-preview", # Ini model Groq yang punya mata
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "Analisa chart XAUUSD ini pake teknik SMC/ICT. Cari Order Block atau FVG. Jawab gaya Nganjuk santai, Cok!"},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{encoded_image}",
+                            },
+                        },
+                    ],
+                }
+            ],
+            temperature=0.5,
+            max_tokens=1024,
         )
-        
-        response = model.generate_content([prompt, sample_file])
-        return response.text
+        return completion.choices[0].message.content
     except Exception as e:
-        return f"Duh, mata gue lagi siwer, Cok! Gak bisa baca chart. Error: {e}"
-      
+        return f"Duh, mata LLaVA gue burem, Cok! Error: {e}"
+                    
