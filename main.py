@@ -4,7 +4,7 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 from vision import analisa_chart_vision
 from market_data import get_live_gold_price, get_high_impact_news
-from brain import validasi_dan_arsiteki as tanya_groq
+from brain import tanya_groq
 from tools import dapet_waktu_sekarang
 
 # --- KONEKSI DATABASE (Tetap Sama) ---
