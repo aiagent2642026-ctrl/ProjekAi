@@ -4,7 +4,7 @@ import logging
 import sys
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
-from vision import analisa_chart_vision # Panggil file baru tadi
+from vision import analisa_chart_vision
 from market_data import get_live_gold_price, get_high_impact_news
 
 # Biar folder project kebaca
@@ -18,9 +18,8 @@ from tools import dapet_waktu_sekarang
 TOKEN_TELE = os.getenv("TOKEN_TELE")
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# --- KONEKSI DATABASE (OTAK GAJAH) ---
+# --- KONEKSI DATABASE ---
 def get_db_connection():
-    # Gunakan koneksi SSL agar aman di Railway
     return psycopg2.connect(DATABASE_URL, sslmode='require')
 
 def init_db():
@@ -45,9 +44,8 @@ def init_db():
 async def belajar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     materi_baru = " ".join(context.args)
     if not materi_baru:
-        await update.message.reply_text("Kasih materinya dong Cok! Contoh: /belajar Gold itu sideways kalo gak ada news.")
+        await update.message.reply_text("Kasih materinya dong Cok! Contoh: /belajar Gold itu sideways.")
         return
-
     try:
         conn = get_db_connection()
         cur = conn.cursor()
@@ -55,111 +53,77 @@ async def belajar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn.commit()
         cur.close()
         conn.close()
-        await update.message.reply_text("Siap Bos! Ilmu baru udah gue simpen di database. Makin gacor nih! 🧠🔥")
+        await update.message.reply_text("iya sayangg")
     except Exception as e:
         await update.message.reply_text(f"Duh error pas nyimpen: {e}")
 
-# --- HANDLING CHAT BIASA (Mikir pake Groq) ---
+# --- HANDLING CHAT BIASA ---
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    msg_user = update.message.text.lower() # Kita bikin kecil semua hurufnya biar gak baperan
+    msg_user = update.message.text
     print(f"📩 Chat Masuk: {msg_user}")
-    # Di main.py lu, bagian handle chat teks:
-if "harga emas" in text.lower():
-    harga = get_live_gold_price()
-    berita = get_high_impact_news()
-    
-    # Kasih tau AI-nya barengan sama harganya
-    prompt = f"Woy AI, ini data dari API: Harga Gold {harga}, News: {berita}. Sekarang jawab pertanyaan user ini: {text}"
-    
-    response = model.generate_content(prompt)
-    update.message.reply_text(response.text)
     
     try:
-        # 1. AMBIL ILMU DARI DATABASE
+        # 1. AMBIL DATA REAL-TIME & DATABASE
+        harga = get_live_gold_price()
+        berita = get_high_impact_news()
+        
+        # Cari di database (Ingatan)
         conn = get_db_connection()
         cur = conn.cursor()
-        
-        # Kita pecah chat lu jadi kata-kata, trus cari yang paling relevan
-        kata_kunci = msg_user.split()
+        kata_kunci = msg_user.lower().split()
         hasil_catatan = []
-        
         for kata in kata_kunci:
-            if len(kata) > 3: # Cari kata yang panjangnya lebih dari 3 huruf biar gak spam
+            if len(kata) > 3:
                 cur.execute("SELECT materi FROM brain_data WHERE materi ILIKE %s LIMIT 1", (f"%{kata}%",))
                 row = cur.fetchone()
-                if row:
-                    hasil_catatan.append(row[0])
-        
+                if row: hasil_catatan.append(row[0])
         cur.close()
         conn.close()
 
-        # 2. PANGGIL OTAK AI (GROQ)
-        jawab_ai = tanya_groq(msg_user)
+        # 2. RAKIT PROMPT & TANYA AI
+        prompt_ai = f"INFO LIVE (Harga: {harga}, News: {berita}). Pertanyaan: {msg_user}"
+        jawab_ai = tanya_groq(prompt_ai)
 
-                # 3. GABUNGIN JAWABAN (PAKSA DIA JAWAB PAKE INGATAN DULU)
+        # 3. GABUNGIN JAWABAN
         if hasil_catatan:
-            # Ambil catatan pertama yang ketemu
-            catatan_final = hasil_catatan[0]
-            respon_final = f"📌 *INGATAN GUE:* {catatan_final}\n\n---\n🤖 *Analisa AI:* {jawab_ai}"
+            respon_final = f"📌 *INGATAN GUE:* {hasil_catatan[0]}\n\n---\n🤖 *Analisa AI:* {jawab_ai}"
         else:
             respon_final = jawab_ai
 
-        # BARIS INI HARUS SEJAJAR SAMA 'if' DI ATASNYA!
         await update.message.reply_text(respon_final, parse_mode="Markdown")
 
     except Exception as e:
-        print(f"⚠️ Error Database: {e}")
-        jawab_ai = tanya_groq(msg_user)
-        await update.message.reply_text(jawab_ai)
+        print(f"⚠️ Error: {e}")
+        # Fallback kalau database/api mati, tetep tanya Groq
+        jawab_simple = tanya_groq(msg_user)
+        await update.message.reply_text(jawab_simple)
 
-    # Ambil konteks dari database dikit (Optional: Biar dia inget materi terakhir)
-    # Untuk sekarang kita fokus biar dia gak crash dulu
-    try:
-        # Panggil AI Groq
-        jawab = tanya_groq(msg_user)
-        await update.message.reply_text(jawab, parse_mode="Markdown")
-    except Exception as e:
-        print(f"⚠️ Error di brain: {e}")
-        await update.message.reply_text("Aduh, otak gue lagi nge-hang dikit, Cok!")
+# --- HANDLING GAMBAR ---
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    msg = await update.message.reply_text("📸 *Sik Cok, gue teropong dulu chart lu...* 🔭", parse_mode="Markdown")
-    
+    msg = await update.message.reply_text("📸 *bentar ya sayangg aku analisa dulu...*", parse_mode="Markdown")
     try:
-        # Download foto
         photo_file = await update.message.photo[-1].get_file()
         file_path = "temp_chart.jpg"
         await photo_file.download_to_drive(file_path)
         
-        # Analisa pake mata Gemini
         hasil_analisa = analisa_chart_vision(file_path)
         
-        # Hapus file sampah
         if os.path.exists(file_path):
             os.remove(file_path)
-            
         await msg.edit_text(hasil_analisa)
     except Exception as e:
         await msg.edit_text(f"Gagal baca gambar, Cok! Error: {e}")
 
 # --- MESIN UTAMA ---
 if __name__ == '__main__':
-    # Pastikan database siap dulu
     init_db()
-    
     print(f"🚀 AGENT NGANJUK AKTIF! [{dapet_waktu_sekarang()}]")
     
-    # Bangun aplikasi Telegram
     app = ApplicationBuilder().token(TOKEN_TELE).build()
-
-    # Daftarin perintah
-    app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     
-    app.add_handler(CommandHandler("start", lambda u, c: u.message.reply_text("Halo Cok! Agent Nganjuk siap bantu trading & coding lu!")))
+    app.add_handler(CommandHandler("start", lambda u, c: u.message.reply_text("Halo Cok! Agent Nganjuk ready!")))
     app.add_handler(CommandHandler("belajar", belajar))
-    
-    # Daftarin handler buat chat biasa
+    app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
 
-    # Gas Pol!
     app.run_polling(drop_pending_updates=True)
-        
