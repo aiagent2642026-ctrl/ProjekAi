@@ -96,7 +96,7 @@ if "harga emas" in text.lower():
         # 2. PANGGIL OTAK AI (GROQ)
         jawab_ai = tanya_groq(msg_user)
 
-        # 3. GABUNGIN JAWABAN (PAKSA DIA JAWAB PAKE INGATAN DULU)
+                # 3. GABUNGIN JAWABAN (PAKSA DIA JAWAB PAKE INGATAN DULU)
         if hasil_catatan:
             # Ambil catatan pertama yang ketemu
             catatan_final = hasil_catatan[0]
@@ -104,6 +104,7 @@ if "harga emas" in text.lower():
         else:
             respon_final = jawab_ai
 
+        # BARIS INI HARUS SEJAJAR SAMA 'if' DI ATASNYA!
         await update.message.reply_text(respon_final, parse_mode="Markdown")
 
     except Exception as e:
