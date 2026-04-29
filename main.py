@@ -5,6 +5,7 @@ import sys
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 from vision import analisa_chart_vision # Panggil file baru tadi
+from market_data import get_live_gold_price, get_high_impact_news
 
 # Biar folder project kebaca
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
