@@ -129,7 +129,18 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await msg.edit_text(hasil_analisa)
     except Exception as e:
         await msg.edit_text(f"Gagal baca gambar, Cok! Error: {e}")
-            
+
+# Di main.py lu, bagian handle chat teks:
+if "harga emas" in text.lower():
+    harga = get_live_gold_price()
+    berita = get_high_impact_news()
+    
+    # Kasih tau AI-nya barengan sama harganya
+    prompt = f"Woy AI, ini data dari API: Harga Gold {harga}, News: {berita}. Sekarang jawab pertanyaan user ini: {text}"
+    
+    response = model.generate_content(prompt)
+    update.message.reply_text(response.text)
+    
 # --- MESIN UTAMA ---
 if __name__ == '__main__':
     # Pastikan database siap dulu
