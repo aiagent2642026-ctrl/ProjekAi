@@ -10,7 +10,7 @@ if GEMINI_KEY:
 def analisa_chart_vision(image_path):
     try:
         # Gunakan model terbaru yang tersedia
-        model = genai.GenerativeModel('gemini-1.5-flash') 
+        model = genai.GenerativeModel('gemini-3-flash-preview') 
         
         with open(image_path, "rb") as f:
             image_data = f.read()
