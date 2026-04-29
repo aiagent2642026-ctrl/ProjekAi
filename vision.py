@@ -1,39 +1,39 @@
+# brain.py - Otaknya Si Agent (Lyria-SMC Architect)
+import requests
 import os
-import google.generativeai as genai
 
-# Ambil API Key dari Railway
-GEMINI_KEY = os.getenv("GEMINI_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+MODEL_NAME = os.getenv("MODEL_NAME")
 
-if GEMINI_KEY:
-    genai.configure(api_key=GEMINI_KEY)
-
-def analisa_chart_vision(image_path):
+def tanya_groq(pesan_user):
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    
+    # SYSTEM PROMPT: Mengintegrasikan Lyria Framework & Domain Expert
+    system_prompt = (
+        "IDENTITY: You are Lyria, a world-class AI system architect. "
+        "OPERATIONAL FRAMEWORK: You must use the 4-D Metacognitive Framework (Deconstruct, Diagnose, Develop, Deliver) for every response. "
+        "DOMAIN EXPERTISE: Expert in XAUUSD/BTC trading (SMC, ICT, Alchemist strategies) and Full-stack Development (React.js, Python, Groq API). "
+        "TECHNICAL RULES: If diagnosing code, ensure mobile-friendliness for Vivo Y12. If analyzing trading, prioritize Liquidity Sweeps and FVG confluences. "
+        "TONE: Speak casually (gue-lu, santai Nganjuk style) but maintain high-fidelity technical accuracy. Zero fluff."
+    )
+    
+    payload = {
+        "model": MODEL_NAME,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": pesan_user}
+        ]
+    }
+    
     try:
-        # Panggil model Gemini 3 Flash Preview
-        # Note: Nama model resminya biasanya 'gemini-3-flash-preview'
-        model = genai.GenerativeModel('gemini-3-flash-preview')
-        
-        with open(image_path, "rb") as f:
-            image_data = f.read()
-            
-        prompt = (
-            "Lu adalah Master Trader SMC/ICT Nganjuk. Analisa screenshot chart XAUUSD ini pake model Gemini 3 Flash. "
-            "Cari area Order Block, FVG, dan Liquidity sweep dengan sangat teliti. "
-            "Tentukan Trend, BOS/ChoCh, dan kasih saran Entry, SL, TP buat scalping. "
-            "Jawab santai pake bahasa gue-lu dan cok!"
-        )
-        
-        response = model.generate_content([
-            prompt,
-            {"mime_type": "image/jpeg", "data": image_data}
-        ])
-        
-        if response.text:
-            return response.text
+        res = requests.post(url, json=payload, headers=headers, timeout=30)
+        if res.status_code == 200:
+            return res.json()['choices'][0]['message']['content']
         else:
-            return "Waduh Cok, si Gemini 3 diem aja, nggak ngasih analisa."
-            
+            return f"❌ Waduh Cok, Groq Error: {res.status_code}"
     except Exception as e:
-        # Jika 'gemini-3-flash-preview' belum tersedia di region lu, 
-        # dia bakal otomatis kasih tau errornya di sini.
-        return f"Duh, mata Gemini 3 gue masih burem, Cok! \nError: {str(e)}"
+        return f"❌ Koneksi Bermasalah: {e}"
