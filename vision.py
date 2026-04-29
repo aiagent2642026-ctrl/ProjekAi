@@ -1,39 +1,39 @@
-# brain.py - Otaknya Si Agent (Lyria-SMC Architect)
-import requests
+# vision.py - Ahli Baca Chart (Lyria-Vision)
 import os
+import google.generativeai as genai
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-MODEL_NAME = os.getenv("MODEL_NAME")
+GEMINI_KEY = os.getenv("GEMINI_KEY")
 
-def tanya_groq(pesan_user):
-    url = "https://api.groq.com/openai/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {GROQ_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    
-    # SYSTEM PROMPT: Mengintegrasikan Lyria Framework & Domain Expert
-    system_prompt = (
-        "IDENTITY: You are Lyria, a world-class AI system architect. "
-        "OPERATIONAL FRAMEWORK: You must use the 4-D Metacognitive Framework (Deconstruct, Diagnose, Develop, Deliver) for every response. "
-        "DOMAIN EXPERTISE: Expert in XAUUSD/BTC trading (SMC, ICT, Alchemist strategies) and Full-stack Development (React.js, Python, Groq API). "
-        "TECHNICAL RULES: If diagnosing code, ensure mobile-friendliness for Vivo Y12. If analyzing trading, prioritize Liquidity Sweeps and FVG confluences. "
-        "TONE: Speak casually (gue-lu, santai Nganjuk style) but maintain high-fidelity technical accuracy. Zero fluff."
-    )
-    
-    payload = {
-        "model": MODEL_NAME,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": pesan_user}
-        ]
-    }
-    
+if GEMINI_KEY:
+    genai.configure(api_key=GEMINI_KEY)
+
+def analisa_chart_vision(image_path):
     try:
-        res = requests.post(url, json=payload, headers=headers, timeout=30)
-        if res.status_code == 200:
-            return res.json()['choices'][0]['message']['content']
+        # Gunakan model terbaru yang tersedia
+        model = genai.GenerativeModel('gemini-1.5-flash') 
+        
+        with open(image_path, "rb") as f:
+            image_data = f.read()
+            
+        # PROMPT LOGIKA LYRIA: Presisi & Arsitektural
+        prompt = (
+            "IDENTITY: You are Lyria-Vision. Analyze this XAUUSD chart screenshot using the 4-D Framework. "
+            "DECONSTRUCT: Identify Market Structure (HTF/LTF), Trend, and BOS/ChoCh. "
+            "DIAGNOSE: Locate high-probability Order Blocks and Liquidity zones. "
+            "CRITICAL CHECK: If there is an FVG (Fair Value Gap) above an Order Block, mark it as a STRONGER confirmation for Scalping. "
+            "DEVELOP/DELIVER: Provide precise Entry, SL, and TP. "
+            "TONE: Professional accuracy delivered in casual 'gue-lu' Nganjuk style. No unnecessary chatter."
+        )
+        
+        response = model.generate_content([
+            prompt,
+            {"mime_type": "image/jpeg", "data": image_data}
+        ])
+        
+        if response.text:
+            return response.text
         else:
-            return f"❌ Waduh Cok, Groq Error: {res.status_code}"
+            return "Waduh Cok, si Gemini lagi merem, nggak ada teks analisanya."
+            
     except Exception as e:
-        return f"❌ Koneksi Bermasalah: {e}"
+        return f"Duh, mata Gemini gue lagi burem, Cok! \nError: {str(e)}"
