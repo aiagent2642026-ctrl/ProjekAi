@@ -63,6 +63,16 @@ async def belajar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg_user = update.message.text.lower() # Kita bikin kecil semua hurufnya biar gak baperan
     print(f"📩 Chat Masuk: {msg_user}")
+    # Di main.py lu, bagian handle chat teks:
+if "harga emas" in text.lower():
+    harga = get_live_gold_price()
+    berita = get_high_impact_news()
+    
+    # Kasih tau AI-nya barengan sama harganya
+    prompt = f"Woy AI, ini data dari API: Harga Gold {harga}, News: {berita}. Sekarang jawab pertanyaan user ini: {text}"
+    
+    response = model.generate_content(prompt)
+    update.message.reply_text(response.text)
     
     try:
         # 1. AMBIL ILMU DARI DATABASE
@@ -130,17 +140,6 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await msg.edit_text(f"Gagal baca gambar, Cok! Error: {e}")
 
-# Di main.py lu, bagian handle chat teks:
-if "harga emas" in text.lower():
-    harga = get_live_gold_price()
-    berita = get_high_impact_news()
-    
-    # Kasih tau AI-nya barengan sama harganya
-    prompt = f"Woy AI, ini data dari API: Harga Gold {harga}, News: {berita}. Sekarang jawab pertanyaan user ini: {text}"
-    
-    response = model.generate_content(prompt)
-    update.message.reply_text(response.text)
-    
 # --- MESIN UTAMA ---
 if __name__ == '__main__':
     # Pastikan database siap dulu
