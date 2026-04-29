@@ -71,7 +71,23 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
     except Exception as e:
         await status_msg.edit_text(f"Duh sayangg ada masalah: {e}")
-
+# --- FITUR /belajar (TARUH INI DI MAIN.PY) ---
+async def belajar(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    materi_baru = " ".join(context.args)
+    if not materi_baru:
+        await update.message.reply_text("Kasih materinya dong Cok! Contoh: /belajar Gold itu sideways.")
+        return
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("INSERT INTO brain_data (materi, kategori) VALUES (%s, %s)", (materi_baru, "umum"))
+        conn.commit()
+        cur.close()
+        conn.close()
+        await update.message.reply_text("Oke, udah gue catat di otak!")
+    except Exception as e:
+        await update.message.reply_text(f"Duh error pas nyimpen: {e}")
+        
 # --- INIT & RUN (Tetap Sama) ---
 if __name__ == '__main__':
     # init_db() taruh di sini
