@@ -40,7 +40,7 @@ def tanya_groq(pesan_user):
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": pesan_user}
         ],
-        "temperature": 0.2 # Diturunin biar dia gak 'ngarang' (lebih kaku tapi akurat)
+        "temperature": 0 # Diturunin biar dia gak 'ngarang' (lebih kaku tapi akurat)
     }
     
     try:
