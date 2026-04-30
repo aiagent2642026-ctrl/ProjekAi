@@ -9,24 +9,24 @@ if GEMINI_KEY:
 def analisa_chart_vision(image_path):
     try:
         # Pake model flash buat vision yang cepet
-        model = genai.GenerativeModel('gemini-3-flash-preview')
+        model = genai.GenerativeModel('gemini-1.5-flash')
         
         if not os.path.exists(image_path):
             return "File fotonya gak ketemu, Cok!"
 
         with open(image_path, "rb") as f:
             image_data = f.read()
-            
-        # PROMPT KHUSUS: Biar Gemini cuma lapor data mentah ke Groq
+
+        # SEKARANG SUDAH MENJOROK KE DALEM (LURUS):
         prompt = (
-            "Kamu adalah mata bagi AI trading. TUGAS UTAMA: "
-            "1. Sebutkan angka harga (Running Price) yang tertera di chart. "
-            "2. Identifikasi Trend (Bullish/Bearish) secara visual. "
-            "3. Sebutkan angka koordinat FVG atau Order Block yang terlihat. "
-            "DILARANG KERAS memberikan saran Entry, SL, atau TP! "
-            "Cukup lapor data mentah agar diolah oleh tim eksekusi."
+            "Sebutkan HANYA data mentah berikut dari gambar: "
+            "1. Harga running saat ini. "
+            "2. Trend visual (Bullish/Bearish). "
+            "3. Lokasi FVG atau OB (angka saja). "
+            "DILARANG KERAS membuat format Scalping/Swing atau memberi sinyal Entry/SL/TP. "
+            "Berikan data dalam bentuk poin-poin singkat saja."
         )
-        
+
         response = model.generate_content([
             prompt,
             {"mime_type": "image/jpeg", "data": image_data}
@@ -39,4 +39,3 @@ def analisa_chart_vision(image_path):
             
     except Exception as e:
         return f"Mata burem, Cok! Error: {str(e)}"
-        
