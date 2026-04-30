@@ -61,9 +61,20 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         raw_vision = analisa_chart_vision(file_path)
         
         # 2. Brain Validation (Minta Groq buat audit hasil Gemini pake framework Lyria)
-        await status_msg.edit_text("🧠 *aku lagi mastiin logikanya bener atau nggak...*")
-        audit_prompt = f"AUDIT ANALISA INI PAKE FRAMEWORK 4-D: {raw_vision}"
-        final_analysis = tanya_groq(audit_prompt)
+        # Di main.py, bagian handle_photo
+await status_msg.edit_text("🧠 *mikir keras biar gak double sinyal...*")
+
+# Kita pertegas perintahnya di sini
+perintah_final = (
+    f"DARI DATA INI: {raw_vision}\n\n"
+    "TOLONG BUATKAN HANYA 1 RESPON YANG TERDIRI DARI:\n"
+    "1. SATU PLAN SCALPING (M1)\n"
+    "2. SATU PLAN SWING (H4)\n"
+    "DILARANG MEMBERIKAN LEBIH DARI ITU. GABUNGKAN JADI SATU KESIMPULAN."
+)
+
+final_analysis = tanya_groq(perintah_final)
+
         
         if os.path.exists(file_path): os.remove(file_path)
         
