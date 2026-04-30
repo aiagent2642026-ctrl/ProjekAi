@@ -10,13 +10,30 @@ from tools import dapet_waktu_sekarang
 # --- KONEKSI DATABASE (Tetap Sama) ---
 def get_db_connection():
     return psycopg2.connect(os.getenv("DATABASE_URL"), sslmode='require')
-
-# --- HANDLING CHAT BIASA (Refined with Lyria Logic) ---
+#___
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg_user = update.message.text
+    
+    # Kalo user nanya istilah atau nanya biasa (bukan minta analisa)
+    keywords = ["apa", "siapa", "kenapa", "gimana", "halo", "help", "verdict"]
+    is_nanya_biasa = any(word in msg_user.lower() for word in keywords)
+
     try:
-        harga = get_live_gold_price()
-        berita = get_high_impact_news()
+        if is_nanya_biasa:
+            # Jawab santai aja, gak usah pake format trading
+            response = tanya_groq(f"Jawab santai sebagai teman yang perhatian: {msg_user}")
+            await update.message.reply_text(response)
+        else:
+            # Ini kodingan lu yang lama buat analisa otomatis
+            harga = get_live_gold_price()
+            berita = get_high_impact_news()
+            
+            perintah = f"Harga: {harga}\nBerita: {berita}\nUser nanya: {msg_user}"
+            response = tanya_groq(perintah)
+            await update.message.reply_text(response)
+            
+    except Exception as e:
+        await update.message.reply_text(f"Duh sayangg ada masalah: {e}")
         
         # Cari di Database (Memory Retrieval)
         conn = get_db_connection()
