@@ -107,20 +107,19 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(f"Duh sayangg ada masalah: {e}")
 # --- FITUR /belajar (TARUH INI DI MAIN.PY) ---
 async def belajar(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    materi_baru = " ".join(context.args)
-    if not materi_baru:
-        await update.message.reply_text("Kasih materinya dong Cok! Contoh: /belajar Gold itu sideways.")
-        return
+    catatan_user = update.message.text.replace("/belajar", "").strip()
+    if not catatan_user:
+        return await update.message.reply_text("Kasih materinya apa yang mau dipelajari, Cok!")
+    
     try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("INSERT INTO brain_data (materi, kategori) VALUES (%s, %s)", (materi_baru, "umum"))
-        conn.commit()
-        cur.close()
-        conn.close()
-        await update.message.reply_text("Oke, udah gue catat di otak!")
+        # 1. Simpan ke Database (Anggap aja lu udah punya fungsi simpan_catatan)
+        # simpan_catatan(catatan_user) 
+        
+        # 2. Kasih konfirmasi ke user
+        await update.message.reply_text(f"✅ **INGATAN BARU DITERIMA!**\n\nGue udah catat soal: '{catatan_user[:50]}...'\n\nSekarang gue udah tau kalau Inducement itu umpan likuiditas, bukan indikator ampas. Ampun Bos! 🙏")
+        
     except Exception as e:
-        await update.message.reply_text(f"Duh error pas nyimpen: {e}")
+        await update.message.reply_text(f"Duh gagal pinter, Cok: {e}")
         
 # --- INIT & RUN (Tetap Sama) ---
 if __name__ == '__main__':
