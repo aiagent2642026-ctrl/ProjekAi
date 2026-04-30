@@ -49,39 +49,45 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await update.message.reply_text(tanya_groq(msg_user))
 
-# --- HANDLING GAMBAR (The Pipeline Upgrade) ---
+# --- HANDLING GAMBAR (The Pipeline Upgrade - FIXED) ---
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     status_msg = await update.message.reply_text("📸 *bentar ya sayangg aku teropong dulu chartnya...*", parse_mode="Markdown")
     try:
+        # 1. Download Foto
         photo_file = await update.message.photo[-1].get_file()
         file_path = "temp_chart.jpg"
         await photo_file.download_to_drive(file_path)
         
-        # 1. Vision Analysis (Raw Analysis dari Gemini)
+        # 2. Vision Analysis (Raw Analysis dari Gemini)
         raw_vision = analisa_chart_vision(file_path)
         
-        # 2. Brain Validation (Minta Groq buat audit hasil Gemini pake framework Lyria)
-        # Di main.py, bagian handle_photo
-await status_msg.edit_text("🧠 *mikir keras biar gak double sinyal...*")
-
-# Kita pertegas perintahnya di sini
-perintah_final = (
-    f"DARI DATA INI: {raw_vision}\n\n"
-    "TOLONG BUATKAN HANYA 1 RESPON YANG TERDIRI DARI:\n"
-    "1. SATU PLAN SCALPING (M1)\n"
-    "2. SATU PLAN SWING (H4)\n"
-    "DILARANG MEMBERIKAN LEBIH DARI ITU. GABUNGKAN JADI SATU KESIMPULAN."
-)
-
-final_analysis = tanya_groq(perintah_final)
-
+        # 3. Brain Validation & Single Output Logic
+        await status_msg.edit_text("🧠 *mikir keras biar gak double sinyal...*", parse_mode="Markdown")
         
-        if os.path.exists(file_path): os.remove(file_path)
+        # Kita pertegas perintahnya di sini biar gak dobel-dobel
+        perintah_final = (
+            f"DARI DATA INI: {raw_vision}\n\n"
+            "TOLONG BUATKAN HANYA 1 RESPON YANG TERDIRI DARI:\n"
+            "1. SATU PLAN SCALPING (M1)\n"
+            "2. SATU PLAN SWING (H4)\n"
+            "DILARANG MEMBERIKAN LEBIH DARI ITU. GABUNGKAN JADI SATU KESIMPULAN."
+        )
         
+        final_analysis = tanya_groq(perintah_final)
+        
+        # Hapus file sampah
+        if os.path.exists(file_path): 
+            os.remove(file_path)
+        
+        # 4. Kirim hasil final
         await status_msg.edit_text(final_analysis, parse_mode="Markdown")
         
     except Exception as e:
-        await status_msg.edit_text(f"Duh sayangg ada masalah: {e}")
+        # Menangani error dengan rapi
+        if 'status_msg' in locals():
+            await status_msg.edit_text(f"Duh sayangg ada masalah: {e}")
+        else:
+            await update.message.reply_text(f"Duh sayangg ada masalah: {e}")
 # --- FITUR /belajar (TARUH INI DI MAIN.PY) ---
 async def belajar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     materi_baru = " ".join(context.args)
