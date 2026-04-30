@@ -9,7 +9,7 @@ if GEMINI_KEY:
 def analisa_chart_vision(image_path):
     try:
         # Pake model flash buat vision yang cepet
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-3-flash-preview')
         
         if not os.path.exists(image_path):
             return "File fotonya gak ketemu, Cok!"
