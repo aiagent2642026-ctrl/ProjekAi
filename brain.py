@@ -29,20 +29,19 @@ def tanya_groq(pesan_user):
     "\n"
     "\n⚠️ **VERDICT**: (Pilih: TRAP atau TREND?)"
     "\n"
-    "TONE: Singkat, Padat, Nganjuk Style."
+    "TONE: Singkat, Padat."
 )
 
+    # brain.py
+payload = {
+    "model": MODEL_NAME,
+    "messages": [
+        {"role": "system", "content": "IDENTITY: Lyria-Brain. TASK: Combine all vision data into ONE single clean response. STRICT RULE: DO NOT provide multiple separate blocks. Provide only ONE 'Scalping' and ONE 'Swing' plan total. NO REPETITION."},
+        {"role": "user", "content": pesan_user}
+    ],
+    "temperature": 0 # Paksa jadi robot kaku
+}
 
-    
-    payload = {
-        "model": MODEL_NAME,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": pesan_user}
-        ],
-        "temperature": 0 # Diturunin biar dia gak 'ngarang' (lebih kaku tapi akurat)
-    }
-    
     try:
         res = requests.post(url, json=payload, headers=headers, timeout=30)
         if res.status_code == 200:
